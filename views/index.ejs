@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropertyGuru Bulk Crawler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        #urlInput {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        #urlInput:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .option-group label {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .option-group input, .option-group select {
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .start-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .url-progress {
+            display: grid;
+            gap: 10px;
+        }
+
+        .url-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #e1e5e9;
+            transition: border-color 0.3s;
+        }
+
+        .url-item.starting { border-left-color: #ffd700; }
+        .url-item.loading { border-left-color: #007bff; }
+        .url-item.scraping { border-left-color: #17a2b8; }
+        .url-item.completed { border-left-color: #28a745; }
+        .url-item.error { border-left-color: #dc3545; }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-icon.starting { background: #ffd700; }
+        .status-icon.loading { background: #007bff; }
+        .status-icon.scraping { background: #17a2b8; }
+        .status-icon.completed { background: #28a745; }
+        .status-icon.error { background: #dc3545; }
+
+        .url-text {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .url-message {
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .results-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .summary-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .summary-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .help-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏡 PropertyGuru Bulk Crawler</h1>
+            <p>Extract price history data from multiple PropertyGuru listings simultaneously</p>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="urlInput">📋 PropertyGuru URLs</label>
+                    <textarea 
+                        id="urlInput" 
+                        placeholder="Paste PropertyGuru listing URLs here, one per line:
+
+https://www.propertyguru.com.sg/listing/for-sale-tembusu-grand-24524443#price-history
+https://www.propertyguru.com.sg/listing/for-sale-another-property-12345#price-history
+https://www.propertyguru.com.sg/listing/for-sale-more-property-67890#price-history
+
+You can paste multiple URLs at once!"
+                    ></textarea>
+                    <div class="help-text">
+                        💡 Paste multiple PropertyGuru listing URLs (one per line). The crawler will automatically navigate to the price history section for each property.
+                    </div>
+                </div>
+
+                <div class="options-grid">
+                    <div class="option-group">
+                        <label for="concurrency">🚀 Parallel Processing</label>
+                        <input type="number" id="concurrency" value="3" min="1" max="20" placeholder="1-20">
+                        <div class="help-text" style="font-size: 0.8rem; color: #666; margin-top: 3px;">
+                            Recommended: 3-5 for stability, 10+ for speed (higher = more resource usage)
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="timeout">⏱️ Timeout (seconds)</label>
+                        <input type="number" id="timeout" value="30" min="10" max="120">
+                    </div>
+
+                    <div class="option-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="headless" checked>
+                            <label for="headless">🔍 Headless Mode (faster)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="start-btn" id="startBtn" onclick="startCrawling()">
+                    🚀 Start Bulk Crawling
+                </button>
+            </div>
+
+            <div class="progress-section" id="progressSection">
+                <div class="progress-header">
+                    <h3>📊 Crawling Progress</h3>
+                    <div class="progress-stats">
+                        <span id="progressStats">0 / 0 URLs</span>
+                        <span id="timeElapsed">0s</span>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="url-progress" id="urlProgress"></div>
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="results-header">
+                    <h3>✅ Crawling Complete</h3>
+                    <a href="#" class="download-btn" id="downloadBtn">📥 Download Results</a>
+                </div>
+
+                <div class="results-summary" id="resultsSummary"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let startTime = null;
+        let urlStatuses = {};
+
+        function startCrawling() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            if (!urlInput) {
+                alert('Please enter at least one PropertyGuru URL');
+                return;
+            }
+
+            const urls = urlInput.split('\n')
+                .map(url => url.trim())
+                .filter(url => url && url.includes('propertyguru.com'));
+
+            if (urls.length === 0) {
+                alert('Please enter valid PropertyGuru URLs');
+                return;
+            }
+
+            const options = {
+                concurrency: parseInt(document.getElementById('concurrency').value),
+                timeout: parseInt(document.getElementById('timeout').value) * 1000,
+                headless: document.getElementById('headless').checked
+            };
+
+            // Initialize UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').textContent = '🔄 Crawling...';
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+
+            // Initialize progress tracking
+            startTime = Date.now();
+            urlStatuses = {};
+            updateProgressUI(urls);
+
+            // Start Server-Sent Events
+            eventSource = new EventSource('/crawl', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ urls, options })
+            });
+
+            // Use fetch for POST request instead
+            fetch('/crawl', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ urls, options })
+            })
+            .then(response => {
+                const reader = response.body.getReader();
+                
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) return;
+                        
+                        const chunk = new TextDecoder().decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        lines.forEach(line => {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    handleProgressUpdate(data);
+                                } catch (e) {
+                                    console.error('Failed to parse SSE data:', e);
+                                }
+                            }
+                        });
+                        
+                        return readStream();
+                    });
+                }
+                
+                return readStream();
+            })
+            .catch(error => {
+                console.error('Crawling failed:', error);
+                alert('Crawling failed: ' + error.message);
+                resetUI();
+            });
+        }
+
+        function handleProgressUpdate(data) {
+            if (data.type === 'complete') {
+                showResults(data);
+                resetUI();
+                return;
+            }
+
+            if (data.type === 'error') {
+                alert('Crawling error: ' + data.error);
+                resetUI();
+                return;
+            }
+
+            // Update individual URL status
+            if (data.urlIndex !== undefined) {
+                urlStatuses[data.urlIndex] = data;
+                updateUrlStatus(data);
+                updateOverallProgress();
+            }
+        }
+
+        function updateProgressUI(urls) {
+            const urlProgress = document.getElementById('urlProgress');
+            urlProgress.innerHTML = '';
+
+            urls.forEach((url, index) => {
+                const urlItem = document.createElement('div');
+                urlItem.className = 'url-item';
+                urlItem.id = `url-${index}`;
+                urlItem.innerHTML = `
+                    <div class="status-icon"></div>
+                    <div class="url-text">${url}</div>
+                    <div class="url-message">Waiting...</div>
+                `;
+                urlProgress.appendChild(urlItem);
+            });
+
+            document.getElementById('progressStats').textContent = `0 / ${urls.length} URLs`;
+        }
+
+        function updateUrlStatus(data) {
+            const urlItem = document.getElementById(`url-${data.urlIndex}`);
+            if (!urlItem) return;
+
+            urlItem.className = `url-item ${data.status}`;
+            const statusIcon = urlItem.querySelector('.status-icon');
+            const message = urlItem.querySelector('.url-message');
+
+            statusIcon.className = `status-icon ${data.status}`;
+            message.textContent = data.message || '';
+        }
+
+        function updateOverallProgress() {
+            const totalUrls = Object.keys(urlStatuses).length > 0 ? 
+                Math.max(...Object.keys(urlStatuses).map(k => urlStatuses[k].totalUrls)) : 0;
+            
+            const completedUrls = Object.values(urlStatuses)
+                .filter(status => status.status === 'completed' || status.status === 'error').length;
+
+            const progressPercent = totalUrls > 0 ? (completedUrls / totalUrls) * 100 : 0;
+            
+            document.getElementById('progressFill').style.width = `${progressPercent}%`;
+            document.getElementById('progressStats').textContent = `${completedUrls} / ${totalUrls} URLs`;
+            
+            if (startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timeElapsed').textContent = `${elapsed}s`;
+            }
+        }
+
+        function showResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsSummary = document.getElementById('resultsSummary');
+            
+            const successful = data.results.filter(r => r.success).length;
+            const failed = data.results.filter(r => !r.success).length;
+            const totalTransactions = data.results
+                .filter(r => r.success && r.data)
+                .reduce((sum, r) => sum + (r.data.totalTransactions || 0), 0);
+
+            resultsSummary.innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-number">${data.results.length}</div>
+                    <div class="summary-label">Total URLs</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${successful}</div>
+                    <div class="summary-label">Successful</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${failed}</div>
+                    <div class="summary-label">Failed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${totalTransactions}</div>
+                    <div class="summary-label">Total Records</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${Math.floor(data.totalTime / 1000)}s</div>
+                    <div class="summary-label">Total Time</div>
+                </div>
+            `;
+
+            // Setup download button
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.results, null, 2))}`;
+            downloadBtn.download = `propertyguru-bulk-crawl-${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+
+            resultsSection.style.display = 'block';
+        }
+
+        function resetUI() {
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').textContent = '🚀 Start Bulk Crawling';
+        }
+    </script>
+</body>
+</html>
